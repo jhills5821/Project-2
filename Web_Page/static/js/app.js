@@ -1,0 +1,168 @@
+function buildChord() {
+  
+  var svg = d3.select("#pie")
+    .append("svg")
+      .attr("width", 440)
+      .attr("height", 440)
+    .append("g")
+      .attr("transform", "translate(220,220)");
+
+  // create a matrix
+  var matrix = [
+  [11,  58, 89, 28],
+  [ 51, 18, 20, 61],
+  [ 80, 145, 80, 85],
+  [ 103,   99,  40, 71]
+  ];
+
+  // give this matrix to d3.chord(): it will calculates all the info we need to draw arc and ribbon
+  var res = d3.chord()
+    .padAngle(0.05)
+    .sortSubgroups(d3.descending)
+    (matrix)
+
+  // Add the links between groups
+  svg
+    .datum(res)
+    .append("g")
+    .selectAll("path")
+    .data(function(d) { return d; })
+    .enter()
+    .append("path")
+      .attr("d", d3.ribbon()
+        .radius(190)
+      )
+      .style("fill", "#69b3a2")
+      .style("stroke", "black");
+
+  // this group object use each group of the data.groups object
+  var group = svg
+    .datum(res)
+    .append("g")
+    .selectAll("g")
+    .data(function(d) { return d.groups; })
+    .enter()
+
+  // add the group arcs on the outer part of the circle
+  group.append("g")
+    .append("path")
+    .style("fill", "grey")
+    .style("stroke", "black")
+    .attr("d", d3.arc()
+      .innerRadius(190)
+      .outerRadius(200)
+    )
+
+  // Add the ticks
+  group
+  .selectAll(".group-tick")
+  .data(function(d) { return groupTicks(d, 25); })    // Controls the number of ticks: one tick each 25 here.
+  .enter()
+  .append("g")
+    .attr("transform", function(d) { return "rotate(" + (d.angle * 180 / Math.PI - 90) + ") translate(" + 200 + ",0)"; })
+  .append("line")               // By default, x1 = y1 = y2 = 0, so no need to specify it.
+    .attr("x2", 6)
+    .attr("stroke", "black")
+
+  // Add the labels of a few ticks:
+  group
+  .selectAll(".group-tick-label")
+  .data(function(d) { return groupTicks(d, 25); })
+  .enter()
+  .filter(function(d) { return d.value % 25 === 0; })
+  .append("g")
+    .attr("transform", function(d) { return "rotate(" + (d.angle * 180 / Math.PI - 90) + ") translate(" + 200 + ",0)"; })
+  .append("text")
+    .attr("x", 8)
+    .attr("dy", ".35em")
+    .attr("transform", function(d) { return d.angle > Math.PI ? "rotate(180) translate(-16)" : null; })
+    .style("text-anchor", function(d) { return d.angle > Math.PI ? "end" : null; })
+    .text(function(d) { return d.value })
+    .style("font-size", 9)
+
+
+  // Returns an array of tick angles and values for a given group and step.
+  function groupTicks(d, step) {
+  var k = (d.endAngle - d.startAngle) / d.value;
+  return d3.range(0, d.value, step).map(function(value) {
+    return {value: value, angle: value * k + d.startAngle};
+    });
+  }
+}
+
+
+
+function buildCharts() {
+
+  // @TODO: Use `d3.json` to fetch the sample data for the plots
+  var url = `/bubble-data`
+  d3.json(url).then(function(data) {
+    
+    var ids = data.year;
+    var labels = data.title;
+    var values = data.citation;
+
+    // @TODO: Build a Bubble Chart using the sample data
+    let bubbleData = [
+      {
+        x: ids,
+        y: values,
+        text: labels,
+        mode: 'markers',
+        marker: {
+          size: values,
+          color: values,
+          colorscale: 'Portland'
+        }
+      }
+    ]
+
+    let bubbleLayout = {
+      xaxis: {title: "Citations by Year"}
+    }
+      
+    Plotly.plot("bubble", bubbleData, bubbleLayout);
+  })
+}
+
+function init() {
+  // Grab a reference to the dropdown select element
+  var Mech_selector = d3.select("#selMech");
+
+  // Use the list of sample names to populate the select options
+  d3.json("/mechanical").then((mech_prop) => {
+    mech_prop.forEach((mech) => {
+      Mech_selector
+        .append("option")
+        .text(mech)
+        .property("value", mech);
+    });
+  });
+  
+  var Therm_selector = d3.select("#selTherm");
+
+  // Use the list of sample names to populate the select options
+  d3.json("/thermal").then((therm_prop) => {
+    therm_prop.forEach((therm) => {
+      Therm_selector
+        .append("option")
+        .text(therm)
+        .property("value", therm);
+    });
+  });
+
+  // Use the first sample from the list to build the initial plots
+  const firstSample = "All";
+  buildCharts(firstSample);
+  buildChord();
+  
+}
+
+function optionChanged(newSample) {
+  // Fetch new data each time a new sample is selected
+  buildCharts(newSample);
+  buildMetadata(newSample);
+}
+
+// Initialize the dashboard
+init()
