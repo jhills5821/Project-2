@@ -1,93 +1,95 @@
-function buildChord() {
+function buildChord(a,b,c,d) {
   
-  var svg = d3.select("#pie")
-    .append("svg")
-      .attr("width", 440)
-      .attr("height", 440)
-    .append("g")
-      .attr("transform", "translate(220,220)");
+  var url = `/chord-data/${a}/${b}/${c}/${d}`
+  d3.json(url).then(function(data) {
+    
+    var chordData= JSON.parse("[" + data + "]");
+    console.log(chordData)
 
-  // create a matrix
-  var matrix = [
-  [11,  58, 89, 28],
-  [ 51, 18, 20, 61],
-  [ 80, 145, 80, 85],
-  [ 103,   99,  40, 71]
-  ];
+    var svg = d3.select("#pie")
+      .append("svg")
+        .attr("width", 440)
+        .attr("height", 440)
+      .append("g")
+        .attr("transform", "translate(220,220)");
 
-  // give this matrix to d3.chord(): it will calculates all the info we need to draw arc and ribbon
-  var res = d3.chord()
-    .padAngle(0.05)
-    .sortSubgroups(d3.descending)
-    (matrix)
+    // create a matrix
+    var matrix = chordData
 
-  // Add the links between groups
-  svg
-    .datum(res)
-    .append("g")
-    .selectAll("path")
-    .data(function(d) { return d; })
-    .enter()
-    .append("path")
-      .attr("d", d3.ribbon()
-        .radius(190)
+    // give this matrix to d3.chord(): it will calculates all the info we need to draw arc and ribbon
+    var res = d3.chord()
+      .padAngle(0.05)
+      .sortSubgroups(d3.descending)
+      (matrix)
+
+    // Add the links between groups
+    svg
+      .datum(res)
+      .append("g")
+      .selectAll("path")
+      .data(function(d) { return d; })
+      .enter()
+      .append("path")
+        .attr("d", d3.ribbon()
+          .radius(190)
+        )
+        .style("fill", "#69b3a2")
+        .style("stroke", "black");
+
+    // this group object use each group of the data.groups object
+    var group = svg
+      .datum(res)
+      .append("g")
+      .selectAll("g")
+      .data(function(d) { return d.groups; })
+      .enter()
+
+    // add the group arcs on the outer part of the circle
+    group.append("g")
+      .append("path")
+      .style("fill", "grey")
+      .style("stroke", "black")
+      .attr("d", d3.arc()
+        .innerRadius(190)
+        .outerRadius(200)
       )
-      .style("fill", "#69b3a2")
-      .style("stroke", "black");
 
-  // this group object use each group of the data.groups object
-  var group = svg
-    .datum(res)
-    .append("g")
-    .selectAll("g")
-    .data(function(d) { return d.groups; })
+    // Add the ticks
+    group
+    .selectAll(".group-tick")
+    .data(function(d) { return groupTicks(d, 25); })    // Controls the number of ticks: one tick each 25 here.
     .enter()
+    .append("g")
+      .attr("transform", function(d) { return "rotate(" + (d.angle * 180 / Math.PI - 90) + ") translate(" + 200 + ",0)"; })
+    .append("line")               // By default, x1 = y1 = y2 = 0, so no need to specify it.
+      .attr("x2", 6)
+      .attr("stroke", "black")
 
-  // add the group arcs on the outer part of the circle
-  group.append("g")
-    .append("path")
-    .style("fill", "grey")
-    .style("stroke", "black")
-    .attr("d", d3.arc()
-      .innerRadius(190)
-      .outerRadius(200)
-    )
-
-  // Add the ticks
-  group
-  .selectAll(".group-tick")
-  .data(function(d) { return groupTicks(d, 25); })    // Controls the number of ticks: one tick each 25 here.
-  .enter()
-  .append("g")
-    .attr("transform", function(d) { return "rotate(" + (d.angle * 180 / Math.PI - 90) + ") translate(" + 200 + ",0)"; })
-  .append("line")               // By default, x1 = y1 = y2 = 0, so no need to specify it.
-    .attr("x2", 6)
-    .attr("stroke", "black")
-
-  // Add the labels of a few ticks:
-  group
-  .selectAll(".group-tick-label")
-  .data(function(d) { return groupTicks(d, 25); })
-  .enter()
-  .filter(function(d) { return d.value % 25 === 0; })
-  .append("g")
-    .attr("transform", function(d) { return "rotate(" + (d.angle * 180 / Math.PI - 90) + ") translate(" + 200 + ",0)"; })
-  .append("text")
-    .attr("x", 8)
-    .attr("dy", ".35em")
-    .attr("transform", function(d) { return d.angle > Math.PI ? "rotate(180) translate(-16)" : null; })
-    .style("text-anchor", function(d) { return d.angle > Math.PI ? "end" : null; })
-    .text(function(d) { return d.value })
-    .style("font-size", 9)
+    // Add the labels of a few ticks:
+    group
+    .selectAll(".group-tick-label")
+    .data(function(d) { return groupTicks(d, 25); })
+    .enter()
+    .filter(function(d) { return d.value % 25 === 0; })
+    .append("g")
+      .attr("transform", function(d) { return "rotate(" + (d.angle * 180 / Math.PI - 90) + ") translate(" + 200 + ",0)"; })
+    .append("text")
+      .attr("x", 8)
+      .attr("dy", ".35em")
+      .attr("transform", function(d) { return d.angle > Math.PI ? "rotate(180) translate(-16)" : null; })
+      .style("text-anchor", function(d) { return d.angle > Math.PI ? "end" : null; })
+      .text(function(d) { return d.value })
+      .style("font-size", 9)
 
 
-  // Returns an array of tick angles and values for a given group and step.
-  function groupTicks(d, step) {
-  var k = (d.endAngle - d.startAngle) / d.value;
-  return d3.range(0, d.value, step).map(function(value) {
-    return {value: value, angle: value * k + d.startAngle};
-    });
-  }
+    // Returns an array of tick angles and values for a given group and step.
+    function groupTicks(d, step) {
+    var k = (d.endAngle - d.startAngle) / d.value;
+    return d3.range(0, d.value, step).map(function(value) {
+      return {value: value, angle: value * k + d.startAngle};
+      });
+    }
+  });
 }
 
 
@@ -151,17 +153,44 @@ function init() {
     });
   });
 
+  var Fluid_selector = d3.select("#selFluid");
+
+  // Use the list of sample names to populate the select options
+  d3.json("/fluid").then((fluid_prop) => {
+    fluid_prop.forEach((fluid) => {
+      Fluid_selector
+        .append("option")
+        .text(fluid)
+        .property("value", fluid);
+    });
+  });
+
+  var Elec_selector = d3.select("#selElec");
+
+  // Use the list of sample names to populate the select options
+  d3.json("/electrical").then((elec_prop) => {
+    elec_prop.forEach((elec) => {
+      Elec_selector
+        .append("option")
+        .text(elec)
+        .property("value", elec);
+    });
+  });
+
   // Use the first sample from the list to build the initial plots
-  const firstSample = "All";
-  buildCharts(firstSample);
-  buildChord();
+  const firstLoad = "All";
+  buildCharts();
+  buildChord(firstLoad,firstLoad,firstLoad,firstLoad);
   
 }
 
-function optionChanged(newSample) {
+function MechOptionChanged(mech) {
   // Fetch new data each time a new sample is selected
+  var therm = ds.select("#selTherm").node.value;
+  var fluid = ds.select("#selFluid").node.value;
+  var elec = ds.select("#selElec").node.value;
+  buildChord(mech,therm,fluid,elec);
   buildCharts(newSample);
-  buildMetadata(newSample);
 }
 
 // Initialize the dashboard
