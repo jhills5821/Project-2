@@ -1,26 +1,109 @@
-function buildChord(a,b,c,d) {
+function init() {
+  // Grab a reference to the dropdown select element
+  var propSelector = d3.select("#selProp");
+
+  // Use the list of sample names to populate the select options
+  d3.json("/properties").then((prop) => {
+    prop.forEach((group) => {
+      propSelector
+        .append("option")
+        .text(group)
+        .property("value", group);
+    });
+  });
   
-  var url = `/chord-data/${a}/${b}/${c}/${d}`
+  var compSelector = d3.select("#selComp");
+
+  // Use the list of sample names to populate the select options
+  d3.json("/composition").then((comp) => {
+    comp.forEach((elem) => {
+      compSelector
+        .append("option")
+        .text(elem)
+        .property("value", elem);
+    });
+  });
+
+  // Use the first sample from the list to build the initial plots
+  buildBubble("Mechanical Properties");
+  buildChord();
+  buildBar();
+  
+}
+
+function buildChord() {
+  
+  var url = `/chord-data`
   d3.json(url).then(function(data) {
     
-    var chordData= JSON.parse("[" + data + "]");
+    var chordData= JSON.parse("[" + data.data + "]");
     console.log(chordData)
 
     var svg = d3.select("#pie")
       .append("svg")
-        .attr("width", 440)
-        .attr("height", 440)
+        .attr("width", 500)
+        .attr("height", 500)
       .append("g")
-        .attr("transform", "translate(220,220)");
+        .attr("transform", "translate(250,250)");
 
     // create a matrix
     var matrix = chordData
 
+    var colors = [ "#440154ff", "#31668dff", "#37b578ff", "#fde725ff","#440154ff", "#31668dff", "#37b578ff", "#fde725ff","#440154ff", "#31668dff", "#37b578ff", "#fde725ff"]
+
+    var names = data.labels
+
     // give this matrix to d3.chord(): it will calculates all the info we need to draw arc and ribbon
     var res = d3.chord()
-      .padAngle(0.05)
-      .sortSubgroups(d3.descending)
-      (matrix)
+        .padAngle(0.05)
+        .sortSubgroups(d3.descending)
+        (matrix)
+
+    // add the groups on the inner part of the circle
+    svg
+      .datum(res)
+      .append("g")
+      .selectAll("g")
+      .data(function(d) { return d.groups; })
+      .enter()
+      .append("g")
+      .append("path")
+        .style("fill", "grey")
+        .style("stroke", "black")
+        .attr("d", d3.arc()
+          .innerRadius(230)
+          .outerRadius(240)
+        )
+
+    // Add a tooltip div. Here I define the general feature of the tooltip: stuff that do not depend on the data point.
+    // Its opacity is set to 0: we don't see it by default.
+    var tooltip = d3.select("#pie")
+      .append("div")
+      .style("opacity", 0)
+      .attr("class", "tooltip")
+      .style("background-color", "white")
+      .style("border", "solid")
+      .style("border-width", "1px")
+      .style("border-radius", "5px")
+      .style("padding", "10px")
+
+    // A function that change this tooltip when the user hover a point.
+    // Its opacity is set to 1: we can now see it. Plus it set the text and position of tooltip depending on the datapoint (d)
+    var showTooltip = function(d) {
+      tooltip
+        .style("opacity", 1)
+        .html("Source: " + names[d.source.index] + "<br>Target: " + names[d.target.index])
+        .style("left", (d3.event.pageX - 400) + "px")
+        .style("top", (d3.event.pageY - 250) + "px")
+    }
+
+    // A function that change this tooltip when the leaves a point: just need to set opacity to 0 again
+    var hideTooltip = function(d) {
+      tooltip
+        .transition()
+        .duration(1000)
+        .style("opacity", 0)
+    }
 
     // Add the links between groups
     svg
@@ -31,78 +114,81 @@ function buildChord(a,b,c,d) {
       .enter()
       .append("path")
         .attr("d", d3.ribbon()
-          .radius(190)
+          .radius(220)
         )
         .style("fill", "#69b3a2")
-        .style("stroke", "black");
-
-    // this group object use each group of the data.groups object
-    var group = svg
-      .datum(res)
-      .append("g")
-      .selectAll("g")
-      .data(function(d) { return d.groups; })
-      .enter()
-
-    // add the group arcs on the outer part of the circle
-    group.append("g")
-      .append("path")
-      .style("fill", "grey")
-      .style("stroke", "black")
-      .attr("d", d3.arc()
-        .innerRadius(190)
-        .outerRadius(200)
-      )
-
-    // Add the ticks
-    group
-    .selectAll(".group-tick")
-    .data(function(d) { return groupTicks(d, 25); })    // Controls the number of ticks: one tick each 25 here.
-    .enter()
-    .append("g")
-      .attr("transform", function(d) { return "rotate(" + (d.angle * 180 / Math.PI - 90) + ") translate(" + 200 + ",0)"; })
-    .append("line")               // By default, x1 = y1 = y2 = 0, so no need to specify it.
-      .attr("x2", 6)
-      .attr("stroke", "black")
-
-    // Add the labels of a few ticks:
-    group
-    .selectAll(".group-tick-label")
-    .data(function(d) { return groupTicks(d, 25); })
-    .enter()
-    .filter(function(d) { return d.value % 25 === 0; })
-    .append("g")
-      .attr("transform", function(d) { return "rotate(" + (d.angle * 180 / Math.PI - 90) + ") translate(" + 200 + ",0)"; })
-    .append("text")
-      .attr("x", 8)
-      .attr("dy", ".35em")
-      .attr("transform", function(d) { return d.angle > Math.PI ? "rotate(180) translate(-16)" : null; })
-      .style("text-anchor", function(d) { return d.angle > Math.PI ? "end" : null; })
-      .text(function(d) { return d.value })
-      .style("font-size", 9)
-
-
-    // Returns an array of tick angles and values for a given group and step.
-    function groupTicks(d, step) {
-    var k = (d.endAngle - d.startAngle) / d.value;
-    return d3.range(0, d.value, step).map(function(value) {
-      return {value: value, angle: value * k + d.startAngle};
-      });
-    }
-  });
+        .style("stroke", "black")
+      .on("mouseover", showTooltip )
+      .on("mouseleave", hideTooltip )
+  })
 }
 
-
-
-function buildCharts() {
+function buildBar() {
 
   // @TODO: Use `d3.json` to fetch the sample data for the plots
-  var url = `/bubble-data`
+  var url = `/bar-data`
+  d3.json(url).then(function(data) {
+
+    var values = data.values
+    var parsedValues = JSON.parse("[" + values + "]");
+    var label = data.labels
+
+    console.log(parsedValues)
+    console.log(label)
+
+    var ctx = document.getElementById('myChart').getContext('2d');
+    var myChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+          labels: label.split(','),
+          datasets: [{
+              data: parsedValues,
+              backgroundColor: [
+                  'rgba(255, 99, 132, 0.2)',
+                  'rgba(54, 162, 235, 0.2)',
+                  'rgba(255, 206, 86, 0.2)',
+                  'rgba(75, 192, 192, 0.2)',
+                  'rgba(153, 102, 255, 0.2)',
+                  'rgba(255, 159, 64, 0.2)'
+              ],
+              borderColor: [
+                  'rgba(255, 99, 132, 1)',
+                  'rgba(54, 162, 235, 1)',
+                  'rgba(255, 206, 86, 1)',
+                  'rgba(75, 192, 192, 1)',
+                  'rgba(153, 102, 255, 1)',
+                  'rgba(255, 159, 64, 1)'
+              ],
+              borderWidth: 1
+          }],
+      },
+      options: {
+        legend: { display: false},
+        title: {
+         display: true,
+         text: "Number of Articles Published per Institution"
+        },
+        scales: {
+          yAxes: [{
+              ticks: {
+                  beginAtZero: true
+              }
+          }]
+        }
+      }
+    });
+  })
+}
+
+function buildBubble(prop) {
+
+  // @TODO: Use `d3.json` to fetch the sample data for the plots
+  var url = `/bubble-data/${prop}`
   d3.json(url).then(function(data) {
     
     var ids = data.year;
     var labels = data.title;
-    var values = data.citation;
+    var values = data.citations;
 
     // @TODO: Build a Bubble Chart using the sample data
     let bubbleData = [
@@ -112,7 +198,6 @@ function buildCharts() {
         text: labels,
         mode: 'markers',
         marker: {
-          size: values,
           color: values,
           colorscale: 'Portland'
         }
@@ -127,71 +212,13 @@ function buildCharts() {
   })
 }
 
-function init() {
-  // Grab a reference to the dropdown select element
-  var Mech_selector = d3.select("#selMech");
 
-  // Use the list of sample names to populate the select options
-  d3.json("/mechanical").then((mech_prop) => {
-    mech_prop.forEach((mech) => {
-      Mech_selector
-        .append("option")
-        .text(mech)
-        .property("value", mech);
-    });
-  });
-  
-  var Therm_selector = d3.select("#selTherm");
 
-  // Use the list of sample names to populate the select options
-  d3.json("/thermal").then((therm_prop) => {
-    therm_prop.forEach((therm) => {
-      Therm_selector
-        .append("option")
-        .text(therm)
-        .property("value", therm);
-    });
-  });
-
-  var Fluid_selector = d3.select("#selFluid");
-
-  // Use the list of sample names to populate the select options
-  d3.json("/fluid").then((fluid_prop) => {
-    fluid_prop.forEach((fluid) => {
-      Fluid_selector
-        .append("option")
-        .text(fluid)
-        .property("value", fluid);
-    });
-  });
-
-  var Elec_selector = d3.select("#selElec");
-
-  // Use the list of sample names to populate the select options
-  d3.json("/electrical").then((elec_prop) => {
-    elec_prop.forEach((elec) => {
-      Elec_selector
-        .append("option")
-        .text(elec)
-        .property("value", elec);
-    });
-  });
-
-  // Use the first sample from the list to build the initial plots
-  const firstLoad = "All";
-  buildCharts();
-  buildChord(firstLoad,firstLoad,firstLoad,firstLoad);
-  
-}
-
-function MechOptionChanged(mech) {
+function PropOptionChanged(prop) {
   // Fetch new data each time a new sample is selected
-  var therm = ds.select("#selTherm").node.value;
-  var fluid = ds.select("#selFluid").node.value;
-  var elec = ds.select("#selElec").node.value;
-  buildChord(mech,therm,fluid,elec);
-  buildCharts(newSample);
+  buildBubble(prop);
 }
 
 // Initialize the dashboard
 init()
+
