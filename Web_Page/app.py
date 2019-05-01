@@ -24,7 +24,7 @@ def index():
 def mech():
     """Return a list of sample names."""
 
-    properties = ["All","Mechanical Properties","Thermal Properties","Fluid Properties","Electrical Properties"]
+    properties = ["All","Mechanical","Thermal","Fluid","Electrical"]
 
     # Return a list of mechanical properties
     return jsonify(properties)
