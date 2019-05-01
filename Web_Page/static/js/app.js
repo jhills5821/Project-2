@@ -48,7 +48,7 @@ function buildChord() {
     // create a matrix
     var matrix = chordData
 
-    var colors = [ "#440154ff", "#31668dff", "#37b578ff", "#fde725ff","#440154ff", "#31668dff", "#37b578ff", "#fde725ff","#440154ff", "#31668dff", "#37b578ff", "#fde725ff"]
+    var colors = [ "#440154ff", "#31668dff", "#37b578ff", "#fde725ff","#440154ff", "#31668dff", "#37b578ff", "#fde725ff","#440154ff", "#31668dff", "#37b578ff", "#fde725ff","#440154ff", "#31668dff", "#37b578ff", "#fde725ff","#440154ff", "#31668dff", "#37b578ff", "#fde725ff","#440154ff", "#31668dff"]
 
     var names = data.labels
 

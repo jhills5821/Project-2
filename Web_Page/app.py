@@ -33,7 +33,7 @@ def mech():
 def therm():
     """Return a list of sample names."""
 
-    composition = ["All","Aluminum","Carbon","Cobalt","Copper","Graphite","Iron","Nickel","Niobium","Palladium","Platinum","Silicon","Silver","Tantalum","Titanium"]
+    composition = ["All","Aluminum","Carbon","Copper","Graphite","Iron","Nickel","Silicon","Silver","Tantalum","Titanium"]
 
     # Return a list of mechanical properties
     return jsonify(composition)
@@ -42,7 +42,7 @@ def therm():
 def chordData():
     data = []
     
-    properties = ["Compression Strength","Tensile Strength","Elastic Modulus","Shear Strength","Plasticity","Thermal Conductivity","Thermal Resistivity","Permeability","Pressure Drop","Electrical Resistivity","Electrical Conductivity","Capacitance","Aluminum","Carbon","Cobalt","Copper","Graphite","Iron","Nickel","Niobium","Palladium","Platinum","Silicon","Silver","Tantalum","Titanium"]
+    properties = ["Compression Strength","Tensile Strength","Elastic Modulus","Shear Strength","Plasticity","Thermal Conductivity","Thermal Resistivity","Permeability","Pressure Drop","Electrical Resistivity","Electrical Conductivity","Capacitance","Aluminum","Carbon","Copper","Graphite","Iron","Nickel","Silicon","Silver","Tantalum","Titanium"]
 
     for prop in properties:
         df = articles.groupby(prop).count()
@@ -85,7 +85,7 @@ def barData(prop,comp):
     values=[]
     labels=[]
 
-    for i in range(6):
+    for i in range(5):
         value=journals.iloc[i]['Authors']
         label = journals.iloc[i]['Journals']
         
