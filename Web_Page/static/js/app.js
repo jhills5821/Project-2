@@ -9,9 +9,10 @@ function init() {
         .append("option")
         .text(group)
         .property("value", group);
-    });
+    });   
   });
   
+
   var compSelector = d3.select("#selComp");
 
   // Use the list of sample names to populate the select options
@@ -23,12 +24,10 @@ function init() {
         .property("value", elem);
     });
   });
-
   // Use the first sample from the list to build the initial plots
-  buildBubble("Mechanical Properties");
+  buildBubble("All","All");
+  buildBar("All","All");
   buildChord();
-  buildBar();
-  
 }
 
 function buildChord() {
@@ -68,7 +67,7 @@ function buildChord() {
       .enter()
       .append("g")
       .append("path")
-        .style("fill", "grey")
+        .style("fill", function(d,i){ return colors[i] })
         .style("stroke", "black")
         .attr("d", d3.arc()
           .innerRadius(230)
@@ -116,17 +115,17 @@ function buildChord() {
         .attr("d", d3.ribbon()
           .radius(220)
         )
-        .style("fill", "#69b3a2")
+        .style("fill", function(d){ return(colors[d.source.index]) })
         .style("stroke", "black")
       .on("mouseover", showTooltip )
       .on("mouseleave", hideTooltip )
   })
 }
 
-function buildBar() {
+function buildBar(prop,comp) {
 
   // @TODO: Use `d3.json` to fetch the sample data for the plots
-  var url = `/bar-data`
+  var url = `/bar-data/${prop}/${comp}`
   d3.json(url).then(function(data) {
 
     var values = data.values
@@ -142,7 +141,7 @@ function buildBar() {
       data: {
           labels: label.split(','),
           datasets: [{
-              data: parsedValues,
+              data: [36, 32, 27, 25, 20, 17],
               backgroundColor: [
                   'rgba(255, 99, 132, 0.2)',
                   'rgba(54, 162, 235, 0.2)',
@@ -180,10 +179,10 @@ function buildBar() {
   })
 }
 
-function buildBubble(prop) {
+function buildBubble(prop,comp) {
 
   // @TODO: Use `d3.json` to fetch the sample data for the plots
-  var url = `/bubble-data/${prop}`
+  var url = `/bubble-data/${prop}/${comp}`
   d3.json(url).then(function(data) {
     
     var ids = data.year;
@@ -198,6 +197,7 @@ function buildBubble(prop) {
         text: labels,
         mode: 'markers',
         marker: {
+          size: '5px',
           color: values,
           colorscale: 'Portland'
         }
@@ -212,11 +212,18 @@ function buildBubble(prop) {
   })
 }
 
-
-
 function PropOptionChanged(prop) {
   // Fetch new data each time a new sample is selected
-  buildBubble(prop);
+  var comp = d3.select("#selComp").node().value
+  buildBubble(prop,comp);
+  buildBar(prop,comp);
+}
+
+function CompOptionChanged(comp) {
+  // Fetch new data each time a new sample is selected
+  var prop = d3.select("#selProp").node().value
+  buildBubble(prop,comp);
+  buildBar(prop,comp);
 }
 
 // Initialize the dashboard

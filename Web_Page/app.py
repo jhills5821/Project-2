@@ -24,7 +24,7 @@ def index():
 def mech():
     """Return a list of sample names."""
 
-    properties = ["Mechanical Properties","Thermal Properties","Fluid Properties","Electrical Properties"]
+    properties = ["All","Mechanical Properties","Thermal Properties","Fluid Properties","Electrical Properties"]
 
     # Return a list of mechanical properties
     return jsonify(properties)
@@ -33,7 +33,7 @@ def mech():
 def therm():
     """Return a list of sample names."""
 
-    composition = ["Aluminum","SiC"]
+    composition = ["All","Aluminum","Carbon","Cobalt","Copper","Graphite","Iron","Nickel","Niobium","Palladium","Platinum","Silicon","Silver","Tantalum","Titanium"]
 
     # Return a list of mechanical properties
     return jsonify(composition)
@@ -42,7 +42,7 @@ def therm():
 def chordData():
     data = []
     
-    properties = ["Compression Strength","Tensile Strength","Elastic Modulus","Shear Strength","Plasticity","Thermal Conductivity","Thermal Resistivity","Permeability","Pressure Drop","Electrical Resistivity","Electrical Conductivity","Capacitance"]
+    properties = ["Compression Strength","Tensile Strength","Elastic Modulus","Shear Strength","Plasticity","Thermal Conductivity","Thermal Resistivity","Permeability","Pressure Drop","Electrical Resistivity","Electrical Conductivity","Capacitance","Aluminum","Carbon","Cobalt","Copper","Graphite","Iron","Nickel","Niobium","Palladium","Platinum","Silicon","Silver","Tantalum","Titanium"]
 
     for prop in properties:
         df = articles.groupby(prop).count()
@@ -71,11 +71,16 @@ def chordData():
 
     return jsonify(info)
 
-@app.route("/bar-data")
-def barData():
-
+@app.route("/bar-data/<prop>/<comp>")
+def barData(prop,comp):
+    if prop == "All":
+        filtered=articles
+    else:
+        filtered=articles[articles[prop]==prop]
+    if comp != "All":
+        filtered = filtered[filtered['Composition']==comp]
     # Format the data to send as json
-    journals=articles.groupby('Journals',as_index=False).count().sort_values(by='Title',ascending=False)
+    journals=filtered.groupby('Journals',as_index=False).count().sort_values(by='Title',ascending=False)
 
     values=[]
     labels=[]
@@ -94,10 +99,14 @@ def barData():
     }
     return jsonify(data)
 
-@app.route("/bubble-data/<prop>")
-def bubbleData(prop):
-    
-    filtered=articles[articles[prop]==prop]
+@app.route("/bubble-data/<prop>/<comp>")
+def bubbleData(prop,comp):
+    if prop == "All":
+        filtered=articles
+    else:
+        filtered=articles[articles[prop]==prop]
+    if comp != "All":
+        filtered = filtered[filtered['Composition']==comp]
     # Format the data to send as json
     data = {
         "year": filtered.Date.values.tolist(),
