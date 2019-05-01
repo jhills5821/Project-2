@@ -52,18 +52,18 @@ def chordData():
                 value = df[property]
                 data_item = int(value)
                 data_point.append(data_item)
-                print(data_item)
+
             else:
                 data_item = articles[property].count()
                 for props in properties:
                     if props != property:
                         df = articles.groupby(prop).count()
                         data_item = data_item - int(df[props])
-                print(data_item)
+
                 data_point.append(data_item)
             
         data.append(str(data_point))
-        print(data_point)
+
 
     info = {"data":data,
             "labels":properties
