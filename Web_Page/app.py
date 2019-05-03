@@ -54,12 +54,12 @@ def chordData():
                 data_point.append(data_item)
 
             else:
-                data_item = articles[property].count()
+                filtered = articles[articles[property]==property]
+            
                 for props in properties:
                     if props != property:
-                        df = articles.groupby(prop).count()
-                        data_item = data_item - int(df[props])
-
+                        filtered = filtered[filtered[props]!=props]
+                data_item = filtered[property].count()
                 data_point.append(data_item)
             
         data.append(str(data_point))
