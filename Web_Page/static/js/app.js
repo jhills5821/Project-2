@@ -25,9 +25,10 @@ function init() {
     });
   });
   // Use the first sample from the list to build the initial plots
-  buildBubble("All","All");
-  buildBar("All","All");
   buildChord();
+  buildAuthorBar("All","All");
+  buildJournalBar("All","All");
+  buildBubble("All","All");
 }
 
 function buildChord() {
@@ -122,14 +123,14 @@ function buildChord() {
   })
 }
 
-function buildBar(prop,comp) {
+function buildAuthorBar(prop,comp) {
 
   // @TODO: Use `d3.json` to fetch the sample data for the plots
-  var url = `/bar-data/${prop}/${comp}`
+  var url = `/author-bar-data/${prop}/${comp}`
   d3.json(url).then(function(data) {
 
     var values = data.values
-    var parsedValues = JSON.parse("[" + values + "]");
+    var parsedValues = JSON.parse(values);
     var label = data.labels
 
     console.log(parsedValues)
@@ -141,7 +142,7 @@ function buildBar(prop,comp) {
       data: {
           labels: label.split(','),
           datasets: [{
-              data: [36, 32, 27, 25, 20, 17],
+              data: parsedValues,
               backgroundColor: [
                   'rgba(255, 99, 132, 0.2)',
                   'rgba(54, 162, 235, 0.2)',
@@ -165,7 +166,64 @@ function buildBar(prop,comp) {
         legend: { display: false},
         title: {
          display: true,
-         text: "Number of Articles Published per Institution"
+         text: "Number of Articles Published per Author"
+        },
+        scales: {
+          yAxes: [{
+              ticks: {
+                  beginAtZero: true
+              }
+          }]
+        }
+      }
+    });
+  })
+}
+
+function buildJournalBar(prop,comp) {
+
+  // @TODO: Use `d3.json` to fetch the sample data for the plots
+  var url = `/journal-bar-data/${prop}/${comp}`
+  d3.json(url).then(function(data) {
+
+    var values = data.values
+    var parsedValues = JSON.parse(values);
+    var label = data.labels
+
+    console.log(parsedValues)
+    console.log(label)
+
+    var ctx = document.getElementById('myChartB').getContext('2d');
+    var myChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+          labels: label.split(','),
+          datasets: [{
+              data: parsedValues,
+              backgroundColor: [
+                  'rgba(255, 99, 132, 0.2)',
+                  'rgba(54, 162, 235, 0.2)',
+                  'rgba(255, 206, 86, 0.2)',
+                  'rgba(75, 192, 192, 0.2)',
+                  'rgba(153, 102, 255, 0.2)',
+                  'rgba(255, 159, 64, 0.2)'
+              ],
+              borderColor: [
+                  'rgba(255, 99, 132, 1)',
+                  'rgba(54, 162, 235, 1)',
+                  'rgba(255, 206, 86, 1)',
+                  'rgba(75, 192, 192, 1)',
+                  'rgba(153, 102, 255, 1)',
+                  'rgba(255, 159, 64, 1)'
+              ],
+              borderWidth: 1
+          }],
+      },
+      options: {
+        legend: { display: false},
+        title: {
+         display: true,
+         text: "Number of Articles Published per Journal"
         },
         scales: {
           yAxes: [{
@@ -215,15 +273,24 @@ function buildBubble(prop,comp) {
 function PropOptionChanged(prop) {
   // Fetch new data each time a new sample is selected
   var comp = d3.select("#selComp").node().value
+
+  Plotly.deleteTraces('bubble', 0)
+
+  buildAuthorBar(prop,comp);
+  buildJournalBar(prop,comp);
   buildBubble(prop,comp);
-  buildBar(prop,comp);
+  
 }
 
 function CompOptionChanged(comp) {
   // Fetch new data each time a new sample is selected
   var prop = d3.select("#selProp").node().value
+
+  Plotly.deleteTraces('bubble', 0)
+
+  buildAuthorBar(prop,comp);
+  buildJournalBar(prop,comp);
   buildBubble(prop,comp);
-  buildBar(prop,comp);
 }
 
 // Initialize the dashboard
